@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Seller Dashboard Pro - Light Mode</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts: Bricolage Grotesque for bold display, Inter for clean body -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Bricolage Grotesque', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            DEFAULT: '#FF6B00',
+                            hover: '#E56000',
+                            light: '#FFF0E5'
+                        },
+                        surface: '#FFFFFF',
+                        background: '#F7F7F9'
+                    },
+                    boxShadow: {
+                        'soft': '0 20px 40px -15px rgba(0,0,0,0.05)',
+                        'floating': '0 30px 60px -20px rgba(0,0,0,0.08)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #F7F7F9;
+            color: #111827;
+        }
+
+        .surface-panel {
+            background: #FFFFFF;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05);
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(15px);
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .delay-100 {
+            animation-delay: 100ms;
+        }
+
+        .delay-200 {
+            animation-delay: 200ms;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        /* Typography overrides */
+        h1,
+        h2,
+        h3,
+        .font-display {
+            font-family: 'Bricolage Grotesque', sans-serif;
+            letter-spacing: -0.03em;
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="antialiased min-h-screen flex flex-col md:flex-row">
+    <div id="app" class="flex w-full min-h-screen" v-cloak>
+        <!-- NAVIGATION -->
+        <nav
+            class="surface-panel w-full md:w-64 flex-shrink-0 fixed md:relative bottom-0 z-50 md:h-screen flex md:flex-col justify-around md:justify-start p-4 md:pt-8 md:px-5 gap-2 md:gap-3 border-t md:border-t-0 md:border-r border-gray-200 bg-white md:bg-white/80 md:backdrop-blur-md">
+            <div class="hidden md:flex mb-10 items-center justify-center gap-2">
+                <!-- Icon Logo mimic orange theme -->
+                <div class="w-8 h-8 bg-brand rounded-lg flex items-center justify-center transform -rotate-6">
+                    <div class="w-3 h-3 bg-white rounded-sm"></div>
+                </div>
+                <h1 class="text-2xl font-display font-extrabold text-gray-900 tracking-tighter">SellerPro</h1>
+            </div>
+
+            <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id"
+                class="flex flex-col md:flex-row items-center gap-1 md:gap-3 p-2 md:px-4 md:py-3.5 rounded-2xl transition-all duration-300 w-full group"
+                :class="currentTab === tab.id ? 'bg-black text-white shadow-xl shadow-black/10' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'">
+                <div v-html="tab.icon" class="w-6 h-6 md:w-5 md:h-5 transition-transform group-hover:scale-110"></div>
+                <span class="text-[10px] md:text-sm font-medium">{{ tab.name }}</span>
+            </button>
+        </nav>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 p-4 md:p-10 overflow-y-auto w-full pb-24 md:pb-10">
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 fade-in-up">
+                <div>
+                    <h2 class="text-4xl md:text-5xl font-display font-extrabold text-gray-900 tracking-tighter">{{
+                        currentTabName }}</h2>
+                    <p class="text-gray-500 text-sm md:text-base mt-2 font-medium">{{ currentTabDesc }}</p>
+                </div>
+                <button @click="resetData"
+                    class="mt-4 md:mt-0 text-sm font-semibold text-gray-500 hover:text-red-500 hover:bg-red-50 px-4 py-2 rounded-xl transition-all border border-gray-200 hover:border-red-200">
+                    Svuota Dati
+                </button>
+            </header>
+
+            <!-- TAB 1: DASHBOARD -->
+            <div v-show="currentTab === 'dashboard'" class="space-y-12">
+                <div v-for="(sku, index) in skus" :key="sku.id" class="fade-in-up" :class="`delay-${(index+1)*100}`">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3
+                            class="text-2xl font-display font-bold text-gray-900 flex items-center gap-3 tracking-tight">
+                            <div class="w-3 h-8 bg-brand rounded-full"></div>
+                            {{ sku.name }}
+                            <span
+                                class="text-sm font-sans font-medium text-gray-400 bg-gray-100 px-3 py-1 rounded-lg">ID:
+                                {{ sku.id }}</span>
+                        </h3>
+                    </div>
+
+                    <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+                        <!-- Card 1 -->
+                        <div
+                            class="surface-panel p-5 rounded-3xl flex flex-col hover:-translate-y-1 transition-transform duration-300">
+                            <span
+                                class="text-gray-500 text-xs font-semibold mb-3 uppercase tracking-wider flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Fatturato
+                            </span>
+                            <span class="text-3xl font-display font-bold text-gray-900">€{{
+                                formatNum(getSkuStats(sku.id).revenue) }}</span>
+                        </div>
+
+                        <!-- Card 2 -->
+                        <div
+                            class="surface-panel p-5 rounded-3xl flex flex-col hover:-translate-y-1 transition-transform duration-300">
+                            <span
+                                class="text-gray-500 text-xs font-semibold mb-3 uppercase tracking-wider flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Unità
+                            </span>
+                            <span class="text-3xl font-display font-bold text-gray-900">{{ getSkuStats(sku.id).units
+                                }}</span>
+                        </div>
+
+                        <!-- Card 3: Utile -->
+                        <div
+                            class="surface-panel p-5 rounded-3xl flex flex-col hover:-translate-y-1 transition-transform duration-300 border-l-4 border-l-brand">
+                            <span class="text-gray-500 text-xs font-semibold mb-3 uppercase tracking-wider">Utile
+                                Lordo</span>
+                            <span class="text-3xl font-display font-bold text-gray-900">€{{
+                                formatNum(getSkuStats(sku.id).profit) }}</span>
+                        </div>
+
+                        <!-- Card 4 -->
+                        <div
+                            class="surface-panel p-5 rounded-3xl flex flex-col hover:-translate-y-1 transition-transform duration-300">
+                            <span
+                                class="text-gray-500 text-xs font-semibold mb-3 uppercase tracking-wider">Margine</span>
+                            <span class="text-3xl font-display font-bold"
+                                :class="getSkuStats(sku.id).marginPercent > 20 ? 'text-green-600' : 'text-gray-900'">{{
+                                getSkuStats(sku.id).marginPercent }}%</span>
+                        </div>
+
+                        <!-- Card 5 -->
+                        <div
+                            class="surface-panel p-5 rounded-3xl flex flex-col hover:-translate-y-1 transition-transform duration-300 bg-brand-light border-transparent">
+                            <span class="text-brand text-xs font-semibold mb-3 uppercase tracking-wider">Costo
+                                Ads</span>
+                            <span class="text-3xl font-display font-bold text-brand">€{{
+                                formatNum(getSkuStats(sku.id).adsSpend) }}</span>
+                        </div>
+
+                        <!-- Card 6 -->
+                        <div
+                            class="surface-panel p-5 rounded-3xl flex flex-col hover:-translate-y-1 transition-transform duration-300">
+                            <span class="text-gray-500 text-xs font-semibold mb-3 uppercase tracking-wider">ROI
+                                Ads</span>
+                            <span class="text-3xl font-display font-bold text-gray-900">{{ getSkuStats(sku.id).roiAds
+                                }}x</span>
+                        </div>
+                    </div>
+
+                    <!-- Sparkline Chart Canvas per ciascun SKU -->
+                    <div class="surface-panel p-5 rounded-3xl h-[250px] w-full">
+                        <canvas :id="`chart-${sku.id}`"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: DETTAGLIO PRODOTTO -->
+            <div v-show="currentTab === 'products'" class="fade-in-up space-y-6 delay-100">
+                <div class="surface-panel p-6 rounded-3xl flex flex-col md:flex-row gap-6 items-end justify-between">
+                    <div class="flex-1 w-full max-w-sm">
+                        <label class="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Filtra per
+                            Prodotto</label>
+                        <select v-model="selectedSku"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-medium outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all appearance-none">
+                            <option v-for="sku in skus" :value="sku.id">{{ sku.name }} ({{ sku.id }})</option>
+                        </select>
+                    </div>
+                    <button @click="showAddDailyModal = true"
+                        class="w-full md:w-auto bg-brand hover:bg-brand-hover text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-brand/20 transform hover:-translate-y-0.5 whitespace-nowrap">
+                        + Registra Dati
+                    </button>
+                </div>
+
+                <div class="surface-panel rounded-3xl overflow-hidden border border-gray-100">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[900px]">
+                            <thead>
+                                <tr
+                                    class="bg-gray-50/80 border-b border-gray-100 text-[11px] text-gray-500 uppercase tracking-widest">
+                                    <th class="p-5 font-bold">Data</th>
+                                    <th class="p-5 font-bold">Unità</th>
+                                    <th class="p-5 font-bold">Ranking</th>
+                                    <th class="p-5 font-bold">Prezzo</th>
+                                    <th class="p-5 font-bold text-gray-900">Fatturato</th>
+                                    <th class="p-5 font-bold">Costi Var.</th>
+                                    <th class="p-5 font-bold">Resi</th>
+                                    <th class="p-5 font-bold text-brand">Ads</th>
+                                    <th class="p-5 font-bold text-green-600">Utile</th>
+                                    <th class="p-5 font-bold"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm divide-y divide-gray-100">
+                                <tr v-for="row in filteredDailyData" :key="row.id"
+                                    class="hover:bg-gray-50/50 transition-colors group">
+                                    <td class="p-5 text-gray-600 font-medium whitespace-nowrap">{{ row.date }}</td>
+                                    <td class="p-5 font-bold text-gray-900">{{ row.units }} <span
+                                            class="text-xs font-normal text-gray-400">pz</span></td>
+                                    <td class="p-5 text-gray-500">#{{ row.rank || '-' }}</td>
+                                    <td class="p-5 text-gray-600">€{{ formatNum(row.price) }}</td>
+                                    <td class="p-5 font-bold text-gray-900">€{{ formatNum(row.revenue) }}</td>
+                                    <td class="p-5 text-gray-500">€{{ formatNum(row.cogs) }}</td>
+                                    <td class="p-5 font-medium"
+                                        :class="row.returns > 0 ? 'text-red-500' : 'text-gray-400'">{{ row.returns }}
+                                    </td>
+                                    <td class="p-5 text-brand font-semibold">€{{ formatNum(row.adsSpend) }}</td>
+                                    <td class="p-5 font-bold"
+                                        :class="calculateDailyProfit(row) >= 0 ? 'text-green-600' : 'text-red-500'">
+                                        €{{ formatNum(calculateDailyProfit(row)) }}
+                                    </td>
+                                    <td class="p-5 text-right w-16">
+                                        <button @click="deleteDailyData(row.id)"
+                                            class="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 bg-white shadow-sm border border-gray-100 rounded-lg p-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                </path>
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr v-if="filteredDailyData.length === 0">
+                                    <td colspan="10" class="p-16 text-center text-gray-400 font-medium">Nessun dato
+                                        registrato. Inizia aggiungendo una giornata.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: MAGAZZINO -->
+            <div v-show="currentTab === 'inventory'" class="fade-in-up space-y-8 delay-100">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div v-for="inv in inventoryStats" :key="inv.skuId"
+                        class="surface-panel p-8 rounded-3xl relative overflow-hidden group">
+                        <!-- Alert Scorte -->
+                        <div v-if="inv.stock < inv.reorderThreshold"
+                            class="absolute top-0 right-0 bg-red-50 text-red-600 text-[10px] uppercase tracking-widest font-bold px-4 py-2 rounded-bl-2xl flex items-center gap-1.5 border-b border-l border-red-100">
+                            <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Alert Scorte
+                        </div>
+
+                        <h3
+                            class="text-2xl font-display font-bold text-gray-900 mb-8 flex items-center gap-2 tracking-tight">
+                            <span class="text-2xl">📦</span> {{ getSkuName(inv.skuId) }}
+                        </h3>
+
+                        <div class="grid grid-cols-2 gap-y-8 gap-x-6">
+                            <div>
+                                <p class="text-[11px] text-gray-500 mb-1.5 uppercase tracking-wider font-bold">
+                                    Disponibilità Invia</p>
+                                <p class="text-4xl font-display font-black"
+                                    :class="inv.stock < inv.reorderThreshold ? 'text-red-600' : 'text-gray-900'">{{
+                                    inv.stock }} <span class="text-sm font-sans font-medium text-gray-500">pz</span></p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] text-gray-500 mb-1.5 uppercase tracking-wider font-bold">Valore
+                                    Magazzino</p>
+                                <p class="text-3xl font-display font-bold text-gray-900">€{{ formatNum(inv.stock *
+                                    inv.unitCost) }}</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-2xl">
+                                <p class="text-[11px] text-gray-500 mb-1.5 uppercase tracking-wider font-bold">Costo
+                                    Acq. Unit.</p>
+                                <div class="flex items-center justify-between">
+                                    <p class="text-xl font-bold text-gray-900">€{{ formatNum(inv.unitCost) }}</p>
+                                    <button @click="editUnitCost(inv)"
+                                        class="text-brand hover:text-brand-hover bg-white shadow-sm p-1.5 rounded-lg border border-gray-100"><svg
+                                            class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
+                                            </path>
+                                        </svg></button>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-2xl">
+                                <p class="text-[11px] text-gray-500 mb-1.5 uppercase tracking-wider font-bold">Soglia
+                                    Riordino</p>
+                                <div class="flex items-center justify-between">
+                                    <p class="text-xl font-bold text-gray-900">{{ inv.reorderThreshold }} <span
+                                            class="text-xs font-normal text-gray-500">pz</span></p>
+                                    <button @click="editThreshold(inv)"
+                                        class="text-brand hover:text-brand-hover bg-white shadow-sm p-1.5 rounded-lg border border-gray-100"><svg
+                                            class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
+                                            </path>
+                                        </svg></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ordini Fornitori -->
+                <div class="surface-panel p-6 md:p-8 rounded-3xl">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                        <div>
+                            <h3 class="text-2xl font-display font-extrabold text-gray-900 tracking-tight">Storico
+                                Rifornimenti</h3>
+                            <p class="text-sm text-gray-500 mt-1 font-medium">Ordini di acquisto confermati con i
+                                fornitori.</p>
+                        </div>
+                        <button @click="showAddOrderModal = true"
+                            class="bg-black text-white px-6 py-3 rounded-2xl font-bold transition-all hover:scale-105 shadow-lg shadow-black/10">
+                            + Aggiungi Ordine
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[600px]">
+                            <thead>
+                                <tr
+                                    class="bg-gray-50/80 border-b border-gray-100 text-[11px] text-gray-500 uppercase tracking-widest">
+                                    <th class="p-5 font-bold rounded-tl-2xl">Data</th>
+                                    <th class="p-5 font-bold">Prodotto (SKU)</th>
+                                    <th class="p-5 font-bold">Quantità</th>
+                                    <th class="p-5 font-bold">Costo Totale</th>
+                                    <th class="p-5 font-bold rounded-tr-2xl">Costo Unitario Appross.</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm divide-y divide-gray-100">
+                                <tr v-for="order in supplierOrders" :key="order.id"
+                                    class="hover:bg-gray-50/50 transition-colors">
+                                    <td class="p-5 text-gray-600 font-medium">{{ order.date }}</td>
+                                    <td class="p-5 text-gray-900 font-bold">{{ getSkuName(order.skuId) }}</td>
+                                    <td class="p-5 font-bold text-green-600">+{{ order.qty }} <span
+                                            class="text-xs font-normal text-gray-500">pz</span></td>
+                                    <td class="p-5 text-gray-900 font-bold">€{{ formatNum(order.totalCost) }}</td>
+                                    <td class="p-5 text-gray-500 font-medium">€{{ formatNum(order.totalCost / order.qty)
+                                        }}</td>
+                                </tr>
+                                <tr v-if="supplierOrders.length === 0">
+                                    <td colspan="5" class="p-12 text-center text-gray-400 font-medium">Nessun ordine
+                                        fornitore registrato.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: FINANZE -->
+            <div v-show="currentTab === 'finances'" class="fade-in-up space-y-6 delay-100">
+                <!-- Selettore Temporale & Header -->
+                <div
+                    class="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-3xl shadow-soft border border-gray-100 gap-4">
+                    <div class="flex items-center gap-2 md:gap-4 w-full md:w-auto overflow-x-auto">
+                        <button @click="changeFinancePeriod(-1)"
+                            class="p-3 hover:bg-gray-100/80 rounded-2xl transition-all shadow-sm border border-transparent hover:border-gray-200">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </button>
+                        <div class="text-center min-w-[200px]">
+                            <h3 class="font-display font-extrabold text-2xl text-gray-900 capitalize tracking-tight">{{
+                                financePeriodLabel }}</h3>
+                            <button @click="toggleFinanceViewMode"
+                                class="text-[11px] text-brand hover:underline font-bold uppercase tracking-widest mt-0.5 inline-block">
+                                {{ financeViewMode === 'monthly' ? 'Passa ad Annuale 🔄' : 'Passa a Mensile 🔄' }}
+                            </button>
+                        </div>
+                        <button @click="changeFinancePeriod(1)"
+                            class="p-3 hover:bg-gray-100/80 rounded-2xl transition-all shadow-sm border border-transparent hover:border-gray-200">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <button @click="openNewTransactionModal"
+                        class="w-full md:w-auto bg-brand hover:bg-brand-hover text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-brand/20 whitespace-nowrap text-lg transform hover:-translate-y-0.5">
+                        + Nuova Transazione
+                    </button>
+                </div>
+
+                <!-- Recap Sommario -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div
+                        class="surface-panel p-6 md:p-8 rounded-3xl flex flex-col justify-center border-l-[6px] border-l-green-500 relative overflow-hidden group">
+                        <div
+                            class="absolute right-0 top-0 w-32 h-32 bg-green-500 rounded-full blur-[80px] opacity-20 -mr-16 -mt-16 group-hover:opacity-30 transition-opacity">
+                        </div>
+                        <span
+                            class="text-gray-500 text-[11px] font-bold mb-2 uppercase tracking-widest relative z-10 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-green-500"></span> Entrate (Lordo)
+                        </span>
+                        <span
+                            class="text-4xl md:text-5xl font-display font-extrabold text-gray-900 tracking-tighter relative z-10">€{{
+                            formatNum(financeSummary.entrate) }}</span>
+                    </div>
+                    <div
+                        class="surface-panel p-6 md:p-8 rounded-3xl flex flex-col justify-center border-l-[6px] border-l-red-500 relative overflow-hidden group">
+                        <div
+                            class="absolute right-0 top-0 w-32 h-32 bg-red-500 rounded-full blur-[80px] opacity-20 -mr-16 -mt-16 group-hover:opacity-30 transition-opacity">
+                        </div>
+                        <span
+                            class="text-gray-500 text-[11px] font-bold mb-2 uppercase tracking-widest relative z-10 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-red-500"></span> Uscite (Lordo)
+                        </span>
+                        <span
+                            class="text-4xl md:text-5xl font-display font-extrabold text-gray-900 tracking-tighter relative z-10">€{{
+                            formatNum(financeSummary.uscite) }}</span>
+                    </div>
+                    <div
+                        class="surface-panel p-6 md:p-8 rounded-3xl flex flex-col justify-center border-l-[6px] border-l-gray-900 bg-gray-50 relative overflow-hidden">
+                        <span
+                            class="text-gray-500 text-[11px] font-bold mb-2 uppercase tracking-widest relative z-10 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-gray-900"></span> Saldo Netto (Periodo)
+                        </span>
+                        <span class="text-4xl md:text-5xl font-display font-extrabold tracking-tighter relative z-10"
+                            :class="financeSummary.saldo >= 0 ? 'text-gray-900' : 'text-red-600'">
+                            {{ financeSummary.saldo >= 0 ? '+' : '' }}€{{ formatNum(financeSummary.saldo) }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Grafici -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div
+                        class="surface-panel p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col bg-white">
+                        <h4
+                            class="text-[11px] font-bold text-gray-500 mb-6 uppercase tracking-widest flex items-center gap-2">
+                            <svg class="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z">
+                                </path>
+                            </svg>
+                            Flusso di cassa Mensile
+                        </h4>
+                        <div class="h-[220px] w-full mt-auto">
+                            <canvas id="chart-finance-ie"></canvas>
+                        </div>
+                    </div>
+                    <div
+                        class="surface-panel p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col bg-white">
+                        <div class="flex justify-between items-start mb-6">
+                            <h4
+                                class="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                                <svg class="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z">
+                                    </path>
+                                </svg>
+                                Analisi IVA
+                            </h4>
+                            <div class="text-right bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100">
+                                <span class="text-[10px] uppercase text-gray-500 font-bold block mb-0.5">Differenza
+                                    IVA</span>
+                                <span class="font-display font-bold text-xl tracking-tight"
+                                    :class="financeSummary.ivaDifferenza >= 0 ? 'text-blue-600' : 'text-orange-600'">
+                                    {{ financeSummary.ivaDifferenza >= 0 ? '+' : '' }}€{{
+                                    formatNum(financeSummary.ivaDifferenza) }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="h-[180px] w-full mt-auto">
+                            <canvas id="chart-finance-vat"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Riconciliazione & Export -->
+                <div
+                    class="flex flex-col xl:flex-row justify-between items-start xl:items-center bg-blue-50/50 border border-blue-100 p-6 rounded-3xl gap-6 relative overflow-hidden">
+                    <div class="absolute -right-10 -bottom-10 opacity-5 w-48 h-48 pointer-events-none text-blue-900">
+                        <svg class="w-full h-full" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                        </svg>
+                    </div>
+                    <div class="flex flex-col md:flex-row items-center gap-6 xl:gap-8 flex-1 w-full relative z-10">
+                        <div class="flex flex-col w-full md:w-auto text-center md:text-left">
+                            <span
+                                class="text-[11px] text-blue-600 uppercase font-bold tracking-widest mb-1 flex items-center justify-center md:justify-start gap-1.5"><span
+                                    class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span> Saldo
+                                Totale App</span>
+                            <span class="font-display font-extrabold text-3xl text-blue-900 tracking-tight">€{{
+                                formatNum(cumulativeBalance) }}</span>
+                        </div>
+
+                        <div class="w-px h-12 bg-blue-200 hidden md:block"></div>
+
+                        <div class="flex flex-col w-full md:w-auto">
+                            <span
+                                class="text-[11px] text-blue-700/70 uppercase font-bold tracking-widest mb-2 text-center md:text-left">Saldo
+                                Conto Bancario Effettivo</span>
+                            <div class="relative">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">€</span>
+                                <input type="number" step="0.01" v-model.number="financeBankBalanceInput"
+                                    placeholder="0.00"
+                                    class="w-full md:w-48 bg-white border border-blue-200 rounded-xl pl-8 pr-4 py-3 text-gray-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-bold shadow-sm">
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col w-full md:w-auto text-center md:text-left"
+                            v-if="financeBankBalanceInput !== '' && financeBankBalanceInput !== 0">
+                            <span
+                                class="text-[11px] text-blue-700/70 uppercase font-bold tracking-widest mb-1">Discrepanza</span>
+                            <div class="flex flex-col sm:flex-row items-center gap-3">
+                                <span class="font-display font-bold text-2xl tracking-tight"
+                                    :class="Math.abs(financeBankBalanceInput - cumulativeBalance) < 0.01 ? 'text-green-500' : 'text-red-500'">
+                                    {{ Math.abs(financeBankBalanceInput - cumulativeBalance) < 0.01 ? 'OK (0.00)' : '€'
+                                        + formatNum(financeBankBalanceInput - cumulativeBalance) }} </span>
+
+                                        <button v-if="Math.abs(financeBankBalanceInput - cumulativeBalance) >= 0.01"
+                                            @click="adjustReconciliationDifference"
+                                            class="bg-white border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm">
+                                            {{ (financeBankBalanceInput - cumulativeBalance) > 0 ? '+ Aggiungi Entrata'
+                                            : '- Aggiungi Uscita' }}
+                                        </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button @click="exportFinanceCSV"
+                        class="w-full xl:w-auto bg-white border border-gray-200 text-gray-700 hover:text-brand hover:border-brand/30 hover:bg-brand-light px-6 py-4 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-3 shadow-[0_4px_10px_rgba(0,0,0,0.02)] whitespace-nowrap group relative z-10 hover:-translate-y-0.5">
+                        <svg class="w-5 h-5 text-gray-400 group-hover:text-brand transition-colors" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Esporta .CSV
+                    </button>
+                </div>
+
+                <!-- Filtri & Tabella -->
+                <div class="surface-panel rounded-3xl overflow-hidden shadow-floating border border-gray-100 bg-white">
+                    <div
+                        class="p-6 md:p-8 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                        <div>
+                            <h3 class="text-2xl font-display font-extrabold text-gray-900 tracking-tight">Registro
+                                Transazioni</h3>
+                            <p class="text-sm text-gray-500 font-medium mt-1">Gestisci i movimenti del periodo
+                                selezionato.</p>
+                        </div>
+                        <div class="relative w-full md:w-80">
+                            <input type="text" v-model="financeSearchQuery"
+                                placeholder="Cerca categoria, importo, nota..."
+                                class="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-sm font-medium outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all text-gray-900">
+                            <svg class="w-5 h-5 text-gray-400 absolute left-4 top-1/2 transform -translate-y-1/2"
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[900px]">
+                            <thead>
+                                <tr
+                                    class="bg-gray-50/80 border-b border-gray-200 text-[11px] text-gray-500 uppercase tracking-widest">
+                                    <th class="p-5 font-bold pl-8">Data</th>
+                                    <th class="p-5 font-bold">Categoria</th>
+                                    <th class="p-5 font-bold">Descrizione</th>
+                                    <th class="p-5 font-bold">IVA <span class="text-gray-400 font-normal">%</span></th>
+                                    <th class="p-5 font-bold text-right" style="min-width: 140px;">Importo</th>
+                                    <th class="p-5 font-bold text-right w-24">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm divide-y divide-gray-100">
+                                <tr v-for="txn in filteredFinances" :key="txn.id"
+                                    class="hover:bg-gray-50/80 transition-all duration-200 group"
+                                    :class="txn.reconciled ? 'opacity-80' : ''">
+                                    <td class="p-5 text-gray-500 font-semibold whitespace-nowrap pl-8">{{ txn.date }}
+                                    </td>
+                                    <td class="p-5 whitespace-nowrap">
+                                        <span
+                                            class="px-3.5 py-1.5 rounded-lg text-[11px] font-bold tracking-widest uppercase inline-flex items-center gap-1.5"
+                                            :class="txn.type === 'in' ? 'bg-green-50 text-green-700 ring-1 ring-green-600/20' : 'bg-red-50 text-red-700 ring-1 ring-red-600/20'">
+                                            <span class="w-1.5 h-1.5 rounded-full"
+                                                :class="txn.type === 'in' ? 'bg-green-500' : 'bg-red-500'"></span>
+                                            {{ txn.category }}
+                                        </span>
+                                    </td>
+                                    <td class="p-5 text-gray-700 font-medium">
+                                        <div class="flex items-center gap-2">
+                                            {{ txn.note || '-' }}
+                                            <a v-if="txn.receiptUrl" :href="txn.receiptUrl" target="_blank"
+                                                class="inline-flex items-center justify-center w-7 h-7 bg-brand/5 text-brand rounded-lg hover:bg-brand hover:text-white transition-colors"
+                                                title="Vedi Allegato">
+                                                <svg class="w-4 h-4 inline" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2.5"
+                                                        d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13">
+                                                    </path>
+                                                </svg>
+                                            </a>
+                                        </div>
+                                    </td>
+                                    <td class="p-5 text-gray-500 font-bold whitespace-nowrap">{{ txn.vatRate !==
+                                        undefined ? txn.vatRate : 22 }}%</td>
+                                    <td class="p-5 text-right font-display font-extrabold text-2xl tracking-tighter whitespace-nowrap"
+                                        :class="txn.type === 'in' ? 'text-green-600' : 'text-gray-900'">
+                                        {{ txn.type === 'in' ? '+' : '-' }}€{{ formatNum(txn.amount) }}
+                                    </td>
+                                    <td class="p-5 text-right">
+                                        <div
+                                            class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button @click="editTransaction(txn)"
+                                                class="text-gray-400 hover:text-brand bg-white shadow-sm border border-gray-100 hover:border-brand/30 rounded-xl p-2.5 transition-colors"
+                                                title="Modifica">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2.5"
+                                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
+                                                    </path>
+                                                </svg>
+                                            </button>
+                                            <button @click="deleteTransaction(txn.id)"
+                                                class="text-gray-400 hover:text-red-500 bg-white shadow-sm border border-gray-100 hover:border-red-200 hover:bg-red-50 rounded-xl p-2.5 transition-all"
+                                                title="Elimina">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2.5"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                    </path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-if="filteredFinances.length === 0">
+                                    <td colspan="7" class="p-20 text-center flex-col justify-center items-center">
+                                        <div
+                                            class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
+                                                </path>
+                                            </svg>
+                                        </div>
+                                        <p class="text-gray-500 font-bold text-lg">Nessun movimento trovato</p>
+                                        <p class="text-gray-400 text-sm mt-1">Cambia periodo o rimuovi i filtri di
+                                            ricerca per vederne altri.</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: IMPOSTAZIONI (SETTINGS) -->
+            <div v-show="currentTab === 'settings'" class="fade-in-up space-y-6 delay-100">
+                <div class="surface-panel p-6 md:p-8 rounded-3xl">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                        <div>
+                            <h3 class="text-2xl font-display font-extrabold text-gray-900 tracking-tight">Catalogo
+                                Prodotti</h3>
+                            <p class="text-sm text-gray-500 mt-1 font-medium">Gestisci i nomi e gli SKU del tuo negozio.
+                            </p>
+                        </div>
+                        <button @click="showAddProductModal = true"
+                            class="bg-black text-white px-6 py-3 rounded-2xl font-bold transition-all hover:scale-105 shadow-lg shadow-black/10">
+                            + Nuovo Prodotto
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[600px]">
+                            <thead>
+                                <tr
+                                    class="bg-gray-50/80 border-b border-gray-100 text-[11px] text-gray-500 uppercase tracking-widest">
+                                    <td class="p-5 font-bold rounded-tl-2xl">SKU ID</td>
+                                    <th class="p-5 font-bold">Nome Pubblico</th>
+                                    <th class="p-5 font-bold">Costo Unit. (€)</th>
+                                    <th class="p-5 font-bold">Margine Fissi (%)</th>
+                                    <th class="p-5 font-bold">Giacenza (Alert)</th>
+                                    <th class="p-5 font-bold rounded-tr-2xl text-right">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm divide-y divide-gray-100">
+                                <tr v-for="sku in skus" :key="sku.id"
+                                    class="hover:bg-gray-50/50 transition-colors group">
+                                    <td class="p-5 text-gray-900 font-bold whitespace-nowrap">
+                                        <div class="flex items-center gap-2">
+                                            <span>{{ sku.id }}</span>
+                                            <button @click="renameSkuId(sku.id)"
+                                                class="text-gray-400 hover:text-brand transition-colors p-1"
+                                                title="Modifica SKU ID">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
+                                                    </path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td class="p-5 w-auto min-w-[200px]">
+                                        <div class="flex items-center gap-2">
+                                            <input type="text" v-model="sku.name" @change="saveData"
+                                                class="bg-transparent border-0 border-b border-dashed border-gray-300 focus:border-brand focus:ring-0 px-1 py-1 text-gray-900 font-medium w-full outline-none transition-colors">
+                                        </div>
+                                    </td>
+                                    <td class="p-5 text-gray-900 font-bold">
+                                        <div class="flex items-center gap-1">
+                                            <span>€</span>
+                                            <input type="number" step="0.01"
+                                                v-model.number="getSkuInventory(sku.id).unitCost" @change="saveData"
+                                                class="w-20 bg-transparent border-0 border-b border-dashed border-gray-300 focus:border-brand font-bold p-1 outline-none text-right">
+                                        </div>
+                                    </td>
+                                    <td class="p-5 text-brand font-bold">
+                                        <div class="flex items-center gap-1">
+                                            <input type="number" step="0.1" v-model.number="sku.customMargin"
+                                                @change="saveData" placeholder="Auto"
+                                                class="w-16 bg-brand/5 rounded border-0 focus:ring-2 focus:ring-brand p-1 outline-none text-right text-brand font-bold">
+                                            <span>%</span>
+                                        </div>
+                                    </td>
+                                    <td class="p-5 text-gray-600 font-bold">
+                                        <div class="flex items-center gap-2">
+                                            Soglia a:
+                                            <input type="number"
+                                                v-model.number="getSkuInventory(sku.id).reorderThreshold"
+                                                @change="saveData"
+                                                class="w-16 bg-transparent border-0 border-b border-dashed border-gray-300 focus:border-red-500 font-bold p-1 outline-none text-center">
+                                        </div>
+                                    </td>
+                                    <td class="p-5 text-right whitespace-nowrap">
+                                        <button @click="deleteSku(sku.id)"
+                                            class="text-gray-400 hover:text-red-500 transition-colors p-2 bg-white shadow-sm border border-gray-100 rounded-xl opacity-0 group-hover:opacity-100"
+                                            title="Elimina SKU e tutto il suo storico">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                </path>
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr v-if="skus.length === 0">
+                                    <td colspan="3" class="p-12 text-center text-gray-400 font-medium">Nessun prodotto
+                                        registrato. Creane uno!</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- MODALS -->
+        <!-- Background Blur overlay -->
+        <div v-show="showAddDailyModal || showAddOrderModal || showAddTransactionModal || showAddProductModal"
+            class="fixed inset-0 z-[90] bg-gray-900/30 backdrop-blur-sm transition-opacity"
+            style="animation: fadeIn 0.2s forwards;"></div>
+
+        <!-- Add Daily -->
+        <div v-if="showAddDailyModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div class="bg-white p-8 md:p-10 rounded-3xl w-full max-w-2xl border border-gray-100 shadow-floating relative"
+                style="animation: fadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+                <button @click="showAddDailyModal = false"
+                    class="absolute top-6 right-6 text-gray-400 hover:text-gray-800 transition-colors bg-gray-50 hover:bg-gray-100 p-2 rounded-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+                <div class="mb-8">
+                    <span class="text-brand font-bold uppercase tracking-widest text-xs">Analytics</span>
+                    <h3 class="text-3xl font-display font-extrabold text-gray-900 mt-1 tracking-tight">Registra Giornata
+                    </h3>
+                </div>
+
+                <form @submit.prevent="saveDailyData" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="col-span-1 md:col-span-2">
+                            <label class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Data
+                                di riferimento</label>
+                            <input type="date" v-model="newDaily.date" required
+                                class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Unità
+                                Vendute</label>
+                            <input type="number" v-model.number="newDaily.units" required min="0" placeholder="Es. 15"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all font-medium">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Fatturato
+                                LORDO (€)</label>
+                            <input type="number" step="0.01" v-model.number="newDaily.revenue" required
+                                placeholder="Es. 450.00"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all font-medium">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Prezzo
+                                Medio Unitario (€)</label>
+                            <input type="number" step="0.01" v-model.number="newDaily.price" required
+                                placeholder="Es. 29.99"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Spesa
+                                Ads/PPC (€)</label>
+                            <input type="number" step="0.01" v-model.number="newDaily.adsSpend" required
+                                placeholder="Es. 45.50"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all font-medium">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold flex gap-2">Costo
+                                Merce+Sped. Unitario <span class="bg-brand/10 text-brand px-1.5 rounded text-[10px]"
+                                    v-if="(skus.find(s => s.id === selectedSku)?.customMargin || 0) <= 0">Autocompilato</span><span
+                                    class="bg-yellow-100 text-yellow-700 px-1.5 rounded text-[10px]" v-else>Ignorato a
+                                    calcolo</span></label>
+                            <input type="number" step="0.01" v-model.number="newDaily.cogs" required
+                                placeholder="Es. 8.50"
+                                class="w-full bg-brand/5 border border-brand/20 rounded-2xl px-5 py-4 text-brand font-bold outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all font-mono"
+                                :disabled="(skus.find(s => s.id === selectedSku)?.customMargin || 0) > 0">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Resi
+                                (Q.tà)</label>
+                            <input type="number" v-model.number="newDaily.returns" min="0" placeholder="0"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-red-500 focus:ring-4 focus:ring-red-500/10 transition-all font-medium">
+                        </div>
+                        <div class="col-span-1 md:col-span-2">
+                            <label class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">BSR
+                                Ranking (Opzionale)</label>
+                            <input type="number" v-model.number="newDaily.rank" min="1" placeholder="Es. 15024"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all font-medium">
+                        </div>
+                    </div>
+                    <div class="flex justify-end pt-6 mt-6 border-t border-gray-100">
+                        <button type="submit"
+                            class="bg-black hover:bg-gray-800 text-white px-10 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-black/10 w-full md:w-auto text-lg">Conferma
+                            Dati</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add Order -->
+        <div v-if="showAddOrderModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div class="bg-white p-8 md:p-10 rounded-3xl w-full max-w-md border border-gray-100 shadow-floating relative"
+                style="animation: fadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+                <button @click="showAddOrderModal = false"
+                    class="absolute top-6 right-6 text-gray-400 hover:text-gray-800 transition-colors bg-gray-50 hover:bg-gray-100 p-2 rounded-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+                <div class="mb-8">
+                    <span class="text-gray-500 font-bold uppercase tracking-widest text-xs">Inventario</span>
+                    <h3 class="text-3xl font-display font-extrabold text-gray-900 mt-1 tracking-tight">Rifornimento</h3>
+                </div>
+                <form @submit.prevent="saveSupplierOrder" class="space-y-5">
+                    <div>
+                        <label
+                            class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Prodotto</label>
+                        <select v-model="newOrder.skuId" required
+                            class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 font-bold">
+                            <option v-for="sku in skus" :value="sku.id">{{ sku.name }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Data
+                            Ordine</label>
+                        <input type="date" v-model="newOrder.date" required
+                            class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Quantità
+                            Acquistata</label>
+                        <input type="number" v-model.number="newOrder.qty" required placeholder="Es. 500"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Costo
+                            Totale (€)</label>
+                        <input type="number" step="0.01" v-model.number="newOrder.totalCost" required
+                            placeholder="Es. 1500.00"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 font-medium">
+                    </div>
+                    <div class="pt-6 mt-6 border-t border-gray-100">
+                        <button type="submit"
+                            class="w-full bg-black hover:bg-gray-800 px-5 py-4 rounded-2xl text-white font-bold transition-all shadow-lg shadow-black/10 text-lg">Aggiungi
+                            a Magazzino</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add Transaction -->
+        <div v-if="showAddTransactionModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div class="bg-white p-8 md:p-10 rounded-3xl w-full max-w-md border border-gray-100 shadow-floating relative"
+                style="animation: fadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+                <button @click="showAddTransactionModal = false; editingTxnId = null"
+                    class="absolute top-6 right-6 text-gray-400 hover:text-gray-800 transition-colors bg-gray-50 hover:bg-gray-100 p-2 rounded-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+                <div class="mb-8">
+                    <span class="text-brand font-bold uppercase tracking-widest text-xs">Cassa</span>
+                    <h3 class="text-3xl font-display font-extrabold text-gray-900 mt-1 tracking-tight">
+                        {{ editingTxnId ? 'Modifica Movimento' : 'Nuovo Movimento' }}
+                    </h3>
+                </div>
+                <form @submit.prevent="saveTransaction" class="space-y-5">
+                    <div>
+                        <label
+                            class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Data</label>
+                        <input type="date" v-model="newTxn.date" required
+                            class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 font-medium">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button type="button" @click="newTxn.type = 'in'"
+                            class="py-4 border-2 rounded-2xl font-bold transition-all"
+                            :class="newTxn.type === 'in' ? 'border-green-500 text-green-600 bg-green-50' : 'border-gray-100 text-gray-400 hover:border-gray-200 hover:bg-gray-50'">Entrata
+                            (+)</button>
+                        <button type="button" @click="newTxn.type = 'out'"
+                            class="py-4 border-2 rounded-2xl font-bold transition-all"
+                            :class="newTxn.type === 'out' ? 'border-red-500 text-red-600 bg-red-50' : 'border-gray-100 text-gray-400 hover:border-gray-200 hover:bg-gray-50'">Uscita
+                            (-)</button>
+                    </div>
+                    <div>
+                        <label
+                            class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold flex gap-2">Categoria
+                            <span class="bg-brand/10 text-brand px-1.5 rounded text-[10px]">Es. Software,
+                                Bonifico...</span></label>
+                        <input type="text" placeholder="Categoria" v-model="newTxn.category" required
+                            class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 font-bold transition-all">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label
+                                class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Importo
+                                Totale(€)</label>
+                            <input type="number" step="0.01" v-model.number="newTxn.amount" required placeholder="0.00"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 text-3xl font-display font-extrabold transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Al.
+                                IVA (%)</label>
+                            <input type="number" step="0.1" v-model.number="newTxn.vatRate" required placeholder="22"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 font-bold text-xl transition-all h-full">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Nota
+                            Aggiuntiva (Opzionale)</label>
+                        <input type="text" placeholder="Descrizione" v-model="newTxn.note"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Ricevuta
+                            / Documento (Opzionale)</label>
+                        <input type="file" @change="handleFileUpload"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 font-medium file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20">
+                    </div>
+                    <div class="pt-6 mt-6 border-t border-gray-100">
+                        <button type="submit"
+                            class="w-full bg-brand hover:bg-brand-hover px-5 py-4 rounded-2xl text-white font-bold transition-all shadow-lg shadow-brand/20 text-lg">Registra
+                            Movimento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add Product -->
+        <div v-if="showAddProductModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div class="bg-white p-8 md:p-10 rounded-3xl w-full max-w-md border border-gray-100 shadow-floating relative"
+                style="animation: fadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+                <button @click="showAddProductModal = false"
+                    class="absolute top-6 right-6 text-gray-400 hover:text-gray-800 transition-colors bg-gray-50 hover:bg-gray-100 p-2 rounded-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+                <div class="mb-8">
+                    <span class="text-brand font-bold uppercase tracking-widest text-xs">Catalogo</span>
+                    <h3 class="text-3xl font-display font-extrabold text-gray-900 mt-1 tracking-tight">Crea Prodotto
+                    </h3>
+                </div>
+                <form @submit.prevent="saveNewProduct" class="space-y-5">
+                    <div>
+                        <label class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">SKU ID
+                            (Univoco)</label>
+                        <input type="text" v-model="newProduct.id" required placeholder="Es. XYZ-123"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 font-bold uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Nome
+                            Pubblico / Display</label>
+                        <input type="text" v-model="newProduct.name" required placeholder="Es. T-Shirt Nera L"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Prezzo
+                            d'acquisto Stimato (€)</label>
+                        <input type="number" step="0.01" v-model.number="newProduct.unitCost" required
+                            placeholder="Es. 4.50"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 font-medium">
+                        <div>
+                            <label
+                                class="block text-[11px] uppercase tracking-wider text-gray-500 mb-2 font-bold">Margine
+                                Fisso Stimato (%) (Opzionale)</label>
+                            <input type="number" step="0.1" v-model.number="newProduct.customMargin"
+                                placeholder="Es. 25"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 font-bold text-brand">
+                            <p class="text-[10px] text-gray-400 mt-2 leading-tight">Se compilato, l'utile verrà
+                                calcolato come `Fatturato * Margine%` bypassando i Cogs.</p>
+                        </div>
+                        <div class="pt-6 mt-6 border-t border-gray-100">
+                            <button type="submit"
+                                class="w-full bg-black hover:bg-gray-800 px-5 py-4 rounded-2xl text-white font-bold transition-all shadow-lg shadow-black/10 text-lg">Aggiungi
+                                Prodotto</button>
+                        </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        const ICONS = {
+            dash: '<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>',
+            prod: '<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>',
+            inv: '<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>',
+            fin: '<svg class="w-full h-full" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>', // Changed finance to a solid generic icon or keeping outline
+            settings: '<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>'
+        };
+        // Fix for solid icon issue above
+        ICONS.fin = '<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+
+        const today = new Date().toISOString().split('T')[0];
+
+        // Setup base chart plugin for styling for Light Mode
+        Chart.defaults.color = "#9CA3AF"; // gray-400
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.font.weight = "600";
+        Chart.defaults.scale.grid.color = "rgba(0,0,0,0.03)";
+
+        createApp({
+            data() {
+                return {
+                    currentTab: 'dashboard',
+                    tabs: [
+                        { id: 'dashboard', name: 'Dashboard', icon: ICONS.dash, desc: 'Panoramica andamento e marginalità' },
+                        { id: 'products', name: 'Analisi', icon: ICONS.prod, desc: 'Monitoraggio tracker giornaliero' },
+                        { id: 'inventory', name: 'Magazzino', icon: ICONS.inv, desc: 'Giacenze e storico ordini' },
+                        { id: 'finances', name: 'Finanze', icon: ICONS.fin, desc: 'Flusso di cassa aziendale' },
+                        { id: 'settings', name: 'Impostazioni', icon: ICONS.settings, desc: 'Catalogo prodotti e settaggi' }
+                    ],
+                    skus: [
+                        { id: 'SKU-001', name: 'Prodotto Alpha', customMargin: null },
+                        { id: 'SKU-002', name: 'Prodotto Beta', customMargin: null }
+                    ],
+                    dailyData: [],
+                    inventory: [
+                        { skuId: 'SKU-001', baseStock: 100, unitCost: 15.50, reorderThreshold: 30 },
+                        { skuId: 'SKU-002', baseStock: 25, unitCost: 8.20, reorderThreshold: 50 }
+                    ],
+                    supplierOrders: [],
+                    finances: [],
+
+                    selectedSku: 'SKU-001',
+
+                    showAddDailyModal: false, showAddOrderModal: false, showAddTransactionModal: false, showAddProductModal: false,
+                    newDaily: { date: today, units: 0, rank: null, price: null, revenue: null, adsSpend: 0, returns: 0, cogs: null },
+                    newOrder: { skuId: '', date: today, qty: 100, totalCost: 0 },
+                    newTxn: { date: today, type: 'out', category: '', amount: 0, vatRate: 22, note: '', fileObj: null, fileBase64: null, receiptUrl: null },
+                    newProduct: { id: '', name: '', unitCost: 0, customMargin: null },
+
+                    financeViewMode: 'monthly',
+                    financeSelectedDate: new Date(),
+                    financeSearchQuery: '',
+                    financeViewMode: 'monthly',
+                    financeSelectedDate: new Date(),
+                    financeSearchQuery: '',
+                    financeBankBalanceInput: 0,
+                    financeInitialBalance: 0, // Saldo iniziale mensile/annuale
+                    editingTxnId: null,
+
+                    charts: {}
+                }
+            },
+            computed: {
+                currentTabName() { return this.tabs.find(t => t.id === this.currentTab)?.name || ''; },
+                currentTabDesc() { return this.tabs.find(t => t.id === this.currentTab)?.desc || ''; },
+                filteredDailyData() {
+                    return this.dailyData.filter(d => d.skuId === this.selectedSku).sort((a, b) => new Date(b.date) - new Date(a.date));
+                },
+                inventoryStats() {
+                    return this.inventory.map(inv => {
+                        const purchases = this.supplierOrders.filter(o => o.skuId === inv.skuId).reduce((s, o) => s + o.qty, 0);
+                        const sales = this.dailyData.filter(d => d.skuId === inv.skuId).reduce((s, d) => s + d.units, 0);
+                        return { ...inv, stock: inv.baseStock + purchases - sales };
+                    });
+                },
+                cumulativeBalance() {
+                    return this.finances.reduce((acc, txn) => txn.type === 'in' ? acc + txn.amount : acc - txn.amount, 0);
+                },
+                financePeriodLabel() {
+                    const d = this.financeSelectedDate;
+                    if (this.financeViewMode === 'monthly') {
+                        return d.toLocaleString('it-IT', { month: 'long', year: 'numeric' });
+                    }
+                    return d.getFullYear().toString();
+                },
+                filteredFinances() {
+                    let filtered = this.finances.filter(txn => {
+                        let txnDate = new Date(txn.date);
+                        if (this.financeViewMode === 'monthly') {
+                            return txnDate.getMonth() === this.financeSelectedDate.getMonth() &&
+                                txnDate.getFullYear() === this.financeSelectedDate.getFullYear();
+                        }
+                        return txnDate.getFullYear() === this.financeSelectedDate.getFullYear();
+                    });
+
+                    if (this.financeSearchQuery.trim()) {
+                        const q = this.financeSearchQuery.toLowerCase();
+                        filtered = filtered.filter(txn =>
+                            txn.category.toLowerCase().includes(q) ||
+                            (txn.note && txn.note.toLowerCase().includes(q)) ||
+                            txn.amount.toString().includes(q)
+                        );
+                    }
+                    return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+                },
+                financeSummary() {
+                    let entrate = 0, uscite = 0, ivaCredito = 0, ivaDebito = 0;
+                    this.filteredFinances.forEach(txn => {
+                        let vatRate = txn.vatRate !== undefined ? txn.vatRate : 22;
+                        let iva = txn.amount - (txn.amount / (1 + vatRate / 100));
+                        if (txn.type === 'in') {
+                            entrate += txn.amount;
+                            ivaDebito += iva;
+                        } else {
+                            uscite += txn.amount;
+                            ivaCredito += iva;
+                        }
+                    });
+                    return { entrate, uscite, saldo: entrate - uscite, ivaCredito, ivaDebito, ivaDifferenza: ivaCredito - ivaDebito };
+                },
+                reconciledSystemBalance() {
+                    let totalStr = this.financeInitialBalance + this.filteredFinances
+                        .filter(t => t.reconciled)
+                        .reduce((acc, txn) => txn.type === 'in' ? acc + txn.amount : acc - txn.amount, 0);
+                    return totalStr;
+                }
+            },
+            methods: {
+                formatNum(num) { return Number(num || 0).toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); },
+                getSkuName(id) { return this.skus.find(s => s.id === id)?.name || id; },
+                getSkuInventory(skuId) { return this.inventory.find(i => i.skuId === skuId) || { unitCost: 0, reorderThreshold: 10 }; },
+                calculateDailyProfit(row) {
+                    const skuConf = this.skus.find(s => s.id === row.skuId);
+                    if (skuConf && skuConf.customMargin > 0) {
+                        return (row.revenue * (skuConf.customMargin / 100)) - row.adsSpend;
+                    }
+                    return row.revenue - (row.cogs * row.units) - row.adsSpend;
+                },
+                getSkuStats(skuId) {
+                    const data = this.dailyData.filter(d => d.skuId === skuId);
+                    const revenue = data.reduce((s, d) => s + d.revenue, 0);
+                    const units = data.reduce((s, d) => s + d.units, 0);
+                    const adsSpend = data.reduce((s, d) => s + d.adsSpend, 0);
+                    const profit = data.reduce((s, d) => s + this.calculateDailyProfit(d), 0);
+
+                    const marginPercent = revenue > 0 ? Math.round((profit / revenue) * 100) : 0;
+                    const roiAds = adsSpend > 0 ? (profit / adsSpend).toFixed(2) : 0;
+
+                    return { revenue, units, adsSpend, profit, marginPercent, roiAds };
+                },
+                saveData() {
+                    try {
+                        localStorage.setItem('amz_seller_data_pro', JSON.stringify({
+                            dailyData: this.dailyData, inventory: this.inventory,
+                            supplierOrders: this.supplierOrders, finances: this.finances,
+                            // Fallback for skus
+                            skus: this.skus
+                        }));
+
+                        // Async server sync for catalog
+                        fetch('save_products.jsp', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.skus)
+                        })
+                            .then(async r => {
+                                if (!r.ok) {
+                                    const errText = await r.text();
+                                    alert("Errore Salvataggio Server: " + r.status + " - " + errText);
+                                }
+                            })
+                            .catch(e => console.error("Errore sync catalogo-server:", e));
+
+                        this.renderAllCharts();
+                    } catch (e) { console.error("Quota exceeded or JSON error", e); }
+                },
+                async loadData() {
+                    // Start by loading local fallback
+                    const saved = localStorage.getItem('amz_seller_data_pro');
+                    if (saved) {
+                        try {
+                            const p = JSON.parse(saved);
+                            this.skus = p.skus || this.skus;
+                            this.dailyData = p.dailyData || [];
+                            this.inventory = p.inventory || this.inventory;
+                            this.supplierOrders = p.supplierOrders || [];
+                            this.finances = (p.finances || []).filter(t => t.date); // Filter out ghost txns with undefined date
+                        } catch (e) { console.error(e); }
+                    }
+
+                    // Try to override SKUs from reliable server .txt file
+                    try {
+                        const res = await fetch(`catalogo_prodotti.txt?t=${Date.now()}`);
+                        if (res.ok) {
+                            const textData = await res.text();
+                            if (textData && textData.trim().length > 0) {
+                                const serverSkus = JSON.parse(textData);
+                                if (serverSkus && Array.isArray(serverSkus)) {
+                                    this.skus = serverSkus;
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Impossibile caricare catalogo server. Uso fallback locale.', e);
+                    }
+
+                    if (!this.newDaily.cogs && this.inventory.length > 0) {
+                        // Pre-fill COGS dal magazzino per la prima volta
+                        const i = this.inventory.find(inv => inv.skuId === this.selectedSku);
+                        if (i) this.newDaily.cogs = i.unitCost;
+                    }
+                    if (this.skus.length > 0 && !this.selectedSku) {
+                        this.selectedSku = this.skus[0].id;
+                    }
+                    if (this.skus.length > 0 && !this.newOrder.skuId) {
+                        this.newOrder.skuId = this.skus[0].id;
+                    }
+                },
+                resetData() {
+                    if (confirm("ATTENZIONE! Vuoi resettare e CANCELLARE tutti i dati inseriti?")) {
+                        localStorage.removeItem('amz_seller_data_pro');
+                        location.reload();
+                    }
+                },
+                deleteSku(skuId) {
+                    if (confirm("Eliminare interamente questo prodotto? VERRANNO CANCELLATE ANCHE le vendite e l'inventario associato!")) {
+                        this.skus = this.skus.filter(s => s.id !== skuId);
+                        this.dailyData = this.dailyData.filter(d => d.skuId !== skuId);
+                        this.inventory = this.inventory.filter(i => i.skuId !== skuId);
+                        this.supplierOrders = this.supplierOrders.filter(o => o.skuId !== skuId);
+                        if (this.selectedSku === skuId && this.skus.length > 0) {
+                            this.selectedSku = this.skus[0].id; // Fallback
+                        } else if (this.skus.length === 0) {
+                            this.selectedSku = ''; // No SKUs left
+                        }
+                        this.saveData();
+                    }
+                },
+                renameSkuId(oldId) {
+                    let newId = prompt(`Rinomina SKU ID (${oldId}):\nAttenzione: verranno aggiornati tutti i dati storici associati. Inserisci il nuovo ID univoco (solo lettere/numeri):`);
+                    if (!newId) return;
+                    newId = newId.toUpperCase().trim().replace(/[^A-Z0-9-]/g, '');
+                    if (!newId || newId === oldId) return;
+
+                    if (this.skus.find(s => s.id === newId)) {
+                        return alert("Impossibile rinominare: questo SKU ID esiste già in catalogo!");
+                    }
+
+                    // Cascade Update
+                    this.skus.forEach(s => { if (s.id === oldId) s.id = newId; });
+                    this.dailyData.forEach(d => { if (d.skuId === oldId) d.skuId = newId; });
+                    this.inventory.forEach(i => { if (i.skuId === oldId) i.skuId = newId; });
+                    this.supplierOrders.forEach(o => { if (o.skuId === oldId) o.skuId = newId; });
+
+                    if (this.selectedSku === oldId) this.selectedSku = newId;
+                    if (this.newOrder.skuId === oldId) this.newOrder.skuId = newId;
+
+                    this.saveData();
+                },
+                saveNewProduct() {
+                    let idUpper = this.newProduct.id.toUpperCase().trim().replace(/[^A-Z0-9-]/g, '');
+                    if (!idUpper) return alert("Inserisci uno SKU valido (solo lettere, numeri e trattini).");
+                    if (this.skus.find(s => s.id === idUpper)) return alert("Attenzione: questo SKU esiste già!");
+
+                    this.skus.push({ id: idUpper, name: this.newProduct.name, customMargin: this.newProduct.customMargin || null });
+                    this.inventory.push({ skuId: idUpper, baseStock: 0, unitCost: this.newProduct.unitCost || 0, reorderThreshold: 10 });
+
+                    // Update fallback selects
+                    if (this.skus.length === 1) {
+                        this.selectedSku = idUpper;
+                        this.newOrder.skuId = idUpper;
+                    }
+
+                    this.saveData();
+                    this.showAddProductModal = false;
+                    this.newProduct = { id: '', name: '', unitCost: 0, customMargin: null };
+                },
+                editUnitCost(inv) {
+                    const current = inv.unitCost;
+                    const val = prompt(`Nuovo costo unitario acquisto per ${this.getSkuName(inv.skuId)}:`, current);
+                    if (val && !isNaN(parseFloat(val))) {
+                        inv.unitCost = parseFloat(val);
+                        this.saveData();
+                    }
+                },
+                editThreshold(inv) {
+                    const val = prompt(`Soglia allarme giacenza per ${this.getSkuName(inv.skuId)}:`, inv.reorderThreshold);
+                    if (val && !isNaN(parseInt(val))) {
+                        inv.reorderThreshold = parseInt(val);
+                        this.saveData();
+                    }
+                },
+                saveDailyData() {
+                    this.dailyData.push({ id: Date.now().toString(), skuId: this.selectedSku, ...this.newDaily });
+                    this.saveData();
+                    this.showAddDailyModal = false;
+                    // Mantiene alcuni valori statici per velocizzare
+                    this.newDaily = { ...this.newDaily, date: today, rank: '', units: 0, revenue: null, returns: 0, adsSpend: 0 };
+                },
+                deleteDailyData(id) {
+                    if (confirm("Eliminare questa registrazione giornaliera?")) {
+                        this.dailyData = this.dailyData.filter(d => d.id !== id);
+                        this.saveData();
+                    }
+                },
+                saveSupplierOrder() {
+                    this.supplierOrders.push({ id: Date.now().toString(), ...this.newOrder });
+                    this.saveData();
+                    this.showAddOrderModal = false;
+                    this.newOrder = { ...this.newOrder, date: today, qty: 0, totalCost: 0 };
+                },
+                handleFileUpload(e) {
+                    const file = e.target.files[0];
+                    if (!file) {
+                        this.newTxn.fileObj = null;
+                        this.newTxn.fileBase64 = null;
+                        return;
+                    }
+                    this.newTxn.fileObj = file;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        this.newTxn.fileBase64 = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                },
+                saveTransaction() {
+                    if (this.newTxn.fileObj && this.newTxn.fileBase64) {
+                        const payload = this.newTxn.fileObj.name + '|||' + this.newTxn.fileBase64;
+                        fetch('upload.jsp', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: payload
+                        })
+                            .then(r => r.json())
+                            .then(data => {
+                                if (data.success) {
+                                    this.newTxn.receiptUrl = data.path;
+                                    this.finalizeSaveTransaction();
+                                } else {
+                                    alert('Errore caricamento file: ' + data.error);
+                                    this.finalizeSaveTransaction();
+                                }
+                            })
+                            .catch(e => {
+                                console.error(e);
+                                alert('Errore rete durante upload del file.');
+                                this.finalizeSaveTransaction();
+                            });
+                    } else {
+                        if (!this.newTxn.receiptUrl) {
+                            this.newTxn.receiptUrl = null;
+                        }
+                        this.finalizeSaveTransaction();
+                    }
+                },
+                finalizeSaveTransaction() {
+                    const toSave = { ...this.newTxn, id: this.editingTxnId || Date.now().toString() };
+                    delete toSave.fileObj;
+                    delete toSave.fileBase64;
+
+                    if (this.editingTxnId) {
+                        const idx = this.finances.findIndex(t => t.id === this.editingTxnId);
+                        if (idx !== -1) {
+                            // preserve reconciled status
+                            toSave.reconciled = this.finances[idx].reconciled;
+                            this.finances[idx] = toSave;
+                        }
+                    } else {
+                        toSave.reconciled = false;
+                        this.finances.push(toSave);
+                    }
+
+                    this.saveData();
+                    this.showAddTransactionModal = false;
+                    this.editingTxnId = null;
+                    this.newTxn = { date: today, type: 'out', category: '', amount: 0, vatRate: 22, note: '', fileObj: null, fileBase64: null, receiptUrl: null };
+                },
+                changeFinancePeriod(delta) {
+                    let d = new Date(this.financeSelectedDate);
+                    if (this.financeViewMode === 'monthly') {
+                        d.setMonth(d.getMonth() + delta);
+                    } else {
+                        d.setFullYear(d.getFullYear() + delta);
+                    }
+                    this.financeSelectedDate = d;
+                },
+                toggleFinanceViewMode() {
+                    this.financeViewMode = this.financeViewMode === 'monthly' ? 'yearly' : 'monthly';
+                },
+                deleteTransaction(id) {
+                    if (confirm("Sei sicuro di voler eliminare questa transazione?")) {
+                        this.finances = this.finances.filter(t => t.id !== id);
+                        this.saveData();
+                    }
+                },
+                openNewTransactionModal() {
+                    this.editingTxnId = null;
+                    this.newTxn = { date: today, type: 'out', category: '', amount: 0, vatRate: 22, note: '', fileObj: null, fileBase64: null, receiptUrl: null };
+                    this.showAddTransactionModal = true;
+                },
+                editTransaction(txn) {
+                    this.editingTxnId = txn.id;
+                    this.newTxn = { ...txn, fileObj: null, fileBase64: null };
+                    this.showAddTransactionModal = true;
+                },
+                toggleReconciliation(txn) {
+                    txn.reconciled = !txn.reconciled;
+                    this.saveData();
+                },
+                adjustReconciliationDifference() {
+                    const diff = this.financeBankBalanceInput - this.cumulativeBalance;
+                    if (Math.abs(diff) < 0.01) return;
+
+                    if (confirm(`Aggiungere un movimento di ${diff > 0 ? 'Entrata' : 'Uscita'} per €${Math.abs(diff).toFixed(2)} per allineare il saldo aziendale a quello della banca?`)) {
+                        this.finances.push({
+                            id: Date.now().toString(),
+                            date: today,
+                            type: diff > 0 ? 'in' : 'out',
+                            category: 'Riconciliazione',
+                            amount: Math.abs(diff),
+                            vatRate: 0,
+                            note: 'Allineamento saldo bancario',
+                            receiptUrl: null,
+                            reconciled: false
+                        });
+                        this.financeBankBalanceInput = 0;
+                        this.saveData();
+                    }
+                },
+                exportFinanceCSV() {
+                    let csvContent = "Data,Categoria,Descrizione,Tipo,Importo,IVA (%)\\n";
+                    this.filteredFinances.forEach(txn => {
+                        let row = [
+                            txn.date,
+                            `"${txn.category}"`,
+                            `"${txn.note || ''}"`,
+                            txn.type === 'in' ? 'Entrata' : 'Uscita',
+                            txn.amount.toString().replace('.', ','),
+                            txn.vatRate !== undefined ? txn.vatRate : 22
+                        ].join(",");
+                        csvContent += row + "\\n";
+                    });
+
+                    // Send the CSV string to the VPS server endpoint
+                    fetch('save_finanze_csv.jsp', {
+                        method: 'POST',
+                        body: csvContent,
+                        headers: {
+                            'Content-Type': 'text/plain; charset=UTF-8'
+                        }
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert("File CSV salvato correttamente sul server VPS!");
+                                // Optionally redirect to download it directly from the URL if needed
+                                // window.open(data.path, '_blank');
+                            } else {
+                                alert("Errore durante il salvataggio sul server: " + data.error);
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Errore export CSV:', err);
+                            alert("Impossibile contattare il server VPS. Riprova più tardi.");
+                        });
+                },
+                renderFinanceCharts() {
+                    this.$nextTick(() => {
+                        const ctxIE = document.getElementById('chart-finance-ie');
+                        const ctxVAT = document.getElementById('chart-finance-vat');
+                        if (!ctxIE || !ctxVAT) return;
+
+                        if (this.charts['finance-ie']) this.charts['finance-ie'].destroy();
+                        if (this.charts['finance-vat']) this.charts['finance-vat'].destroy();
+
+                        let labelsIE = [];
+                        let dataEntrate = [];
+                        let dataUscite = [];
+
+                        if (this.financeViewMode === 'yearly') {
+                            const months = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+                            labelsIE = months;
+                            dataEntrate = new Array(12).fill(0);
+                            dataUscite = new Array(12).fill(0);
+
+                            this.filteredFinances.forEach(txn => {
+                                const m = new Date(txn.date).getMonth();
+                                if (txn.type === 'in') dataEntrate[m] += txn.amount;
+                                else dataUscite[m] += txn.amount;
+                            });
+                        } else {
+                            labelsIE = [this.financePeriodLabel];
+                            dataEntrate = [this.financeSummary.entrate];
+                            dataUscite = [this.financeSummary.uscite];
+                        }
+
+                        this.charts['finance-ie'] = new Chart(ctxIE, {
+                            type: 'bar',
+                            data: {
+                                labels: labelsIE,
+                                datasets: [
+                                    {
+                                        label: 'Entrate (Lordo)',
+                                        data: dataEntrate,
+                                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                                        borderColor: '#10B981',
+                                        borderWidth: 2,
+                                        borderRadius: 6
+                                    },
+                                    {
+                                        label: 'Uscite (Lordo)',
+                                        data: dataUscite,
+                                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                                        borderColor: '#EF4444',
+                                        borderWidth: 2,
+                                        borderRadius: 6
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: true,
+                                        labels: { font: { weight: 'bold', family: "'Inter', sans-serif" }, color: '#374151' }
+                                    }
+                                },
+                                scales: {
+                                    x: { ticks: { font: { weight: 'bold' }, color: '#374151' }, grid: { display: false } },
+                                    y: { ticks: { font: { weight: 'bold' }, color: '#374151' }, grid: { color: 'rgba(0,0,0,0.06)', drawBorder: false }, border: { display: false } }
+                                }
+                            }
+                        });
+
+                        this.charts['finance-vat'] = new Chart(ctxVAT, {
+                            type: 'bar',
+                            data: {
+                                labels: ['A Credito', 'A Debito'],
+                                datasets: [{
+                                    data: [this.financeSummary.ivaCredito, this.financeSummary.ivaDebito],
+                                    backgroundColor: ['rgba(59, 130, 246, 0.8)', 'rgba(245, 158, 11, 0.8)'],
+                                    borderColor: ['#3B82F6', '#F59E0B'],
+                                    borderWidth: 2,
+                                    borderRadius: 6
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    x: { ticks: { font: { weight: 'bold' }, color: '#374151' }, grid: { display: false } },
+                                    y: { ticks: { font: { weight: 'bold' }, color: '#374151' }, grid: { color: 'rgba(0,0,0,0.06)', drawBorder: false }, border: { display: false } }
+                                }
+                            }
+                        });
+                    });
+                },
+                renderAllCharts() {
+                    this.$nextTick(() => {
+                        this.skus.forEach(sku => {
+                            const ctx = document.getElementById(`chart-${sku.id}`);
+                            if (!ctx) return;
+
+                            const data = this.dailyData.filter(d => d.skuId === sku.id)
+                                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                                .slice(-14);
+
+                            const labels = data.map(d => d.date.split('-').slice(1).join('/'));
+                            const revenue = data.map(d => d.revenue);
+                            const profit = data.map(d => this.calculateDailyProfit(d));
+
+                            if (this.charts[sku.id]) {
+                                this.charts[sku.id].destroy();
+                            }
+
+                            // Define gradients for the chart area
+                            let gradientRev = ctx.getContext('2d').createLinearGradient(0, 0, 0, 400);
+                            gradientRev.addColorStop(0, 'rgba(255, 107, 0, 0.2)'); // Brand light
+                            gradientRev.addColorStop(1, 'rgba(255, 107, 0, 0)');
+
+                            let gradientProf = ctx.getContext('2d').createLinearGradient(0, 0, 0, 400);
+                            gradientProf.addColorStop(0, 'rgba(17, 24, 39, 0.1)'); // Black light
+                            gradientProf.addColorStop(1, 'rgba(17, 24, 39, 0)');
+
+                            this.charts[sku.id] = new Chart(ctx, {
+                                type: 'line',
+                                data: {
+                                    labels: labels.length ? labels : ['No Data'],
+                                    datasets: [
+                                        {
+                                            label: 'Fatturato (€)',
+                                            data: revenue.length ? revenue : [0],
+                                            borderColor: '#FF6B00',
+                                            backgroundColor: gradientRev,
+                                            tension: 0.4, fill: true, yAxisID: 'y',
+                                            borderWidth: 3,
+                                            pointBackgroundColor: '#FFF',
+                                            pointBorderColor: '#FF6B00',
+                                            pointBorderWidth: 2,
+                                            pointRadius: 4,
+                                            pointHoverRadius: 6
+                                        },
+                                        {
+                                            label: 'Utile (€)',
+                                            data: profit.length ? profit : [0],
+                                            borderColor: '#111827',
+                                            backgroundColor: gradientProf,
+                                            tension: 0.4, fill: true, yAxisID: 'y',
+                                            borderWidth: 2,
+                                            borderDash: [5, 5],
+                                            pointRadius: 0,
+                                            pointHoverRadius: 5
+                                        }
+                                    ]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: { legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8, font: { family: "'Inter', sans-serif", weight: 'bold' } } } },
+                                    scales: {
+                                        x: { grid: { display: false } },
+                                        y: { grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false }, border: { display: false } }
+                                    },
+                                    interaction: { mode: 'index', intersect: false }
+                                }
+                            });
+                        });
+                    });
+                }
+            },
+            mounted() {
+                this.loadData();
+                this.renderAllCharts();
+            },
+            watch: {
+                currentTab(val) {
+                    if (val === 'dashboard') {
+                        setTimeout(() => this.renderAllCharts(), 100);
+                    }
+                    if (val === 'finances') {
+                        setTimeout(() => this.renderFinanceCharts(), 100);
+                    }
+                },
+                selectedSku() {
+                    const i = this.inventory.find(inv => inv.skuId === this.selectedSku);
+                    if (i) this.newDaily.cogs = i.unitCost;
+                },
+                filteredFinances: {
+                    handler() {
+                        if (this.currentTab === 'finances') {
+                            this.renderFinanceCharts();
+                        }
+                    },
+                    deep: true
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
