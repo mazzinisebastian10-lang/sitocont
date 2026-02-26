@@ -1,10 +1,10 @@
-FROM tomcat9.0
+FROM tomcat:9.0
 
 # Rimuove applicazioni di default
-RUN rm -rf usrlocaltomcatwebapps
+RUN rm -rf /usr/local/tomcat/webapps/*
 
-# Copia tutti i file del progetto dentro ROOT
-COPY . usrlocaltomcatwebappsROOT
+# Copia il tuo file war
+COPY mioSito.war /usr/local/tomcat/webapps/ROOT.war
 
-# Configurazione porta dinamica per Render
-CMD sed -i s8080${PORT} usrlocaltomcatconfserver.xml && catalina.sh run
+# Porta dinamica per Render
+CMD sed -i "s/8080/${PORT}/" /usr/local/tomcat/conf/server.xml && catalina.sh run
